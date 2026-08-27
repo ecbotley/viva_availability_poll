@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>¡VIVA! — English Sessions Availability</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --ink:#14171c;
+    --panel:#1e232b;
+    --panel-raised:#262c36;
+    --amber:#e8a33d;
+    --paper:#f3eee3;
+    --muted:#8993a3;
+    --line:#333b47;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ink);color:var(--paper);font-family:'Inter',sans-serif;}
+  body{min-height:100vh;padding:0 0 60px;}
+  .wrap{max-width:640px;margin:0 auto;padding:0 18px;}
+
+  /* header */
+  .masthead{padding:28px 18px 18px;text-align:center;position:relative;border-bottom:1px solid var(--line);}
+  .tally{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--amber);
+    box-shadow:0 0 8px 2px rgba(232,163,61,0.65);margin-right:8px;
+    animation:pulse 2.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.45;}}
+  @media (prefers-reduced-motion: reduce){.tally{animation:none;}}
+  .eyebrow{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:0.03em;margin:6px 0 4px;line-height:1;}
+  .sub{color:var(--muted);font-size:14.5px;margin:0;}
+
+  /* name inputs */
+  .namebar{display:flex;gap:10px;padding:20px 0 6px;}
+  .namebar input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);color:var(--paper);
+    font-family:'Inter';font-size:15px;padding:12px 13px;border-radius:9px;}
+  .namebar input:focus{outline:none;border-color:var(--amber);}
+  .colorline{display:flex;align-items:center;gap:8px;min-height:20px;font-size:12.5px;color:var(--muted);padding:2px 2px 14px;}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none;box-shadow:0 0 6px 0 currentColor;}
+
+  /* week blocks */
+  .weeklabel{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.1em;font-size:13px;
+    color:var(--amber);margin:22px 0 10px;padding-top:14px;border-top:1px solid var(--line);}
+  .weeklabel:first-of-type{border-top:none;margin-top:8px;}
+  .dayrow{display:flex;align-items:center;gap:10px;padding:7px 0;}
+  .daylabel{width:82px;flex:none;font-size:13.5px;color:var(--paper);}
+  .daylabel .dow{font-weight:600;}
+  .daylabel .dnum{color:var(--muted);display:block;font-size:11.5px;}
+  .blocks{display:flex;gap:7px;flex:1;}
+  .blk{flex:1;background:var(--panel-raised);border:1px solid var(--line);border-radius:8px;color:var(--muted);
+    font-family:'Inter';font-weight:600;font-size:12px;padding:10px 4px;cursor:pointer;text-align:center;
+    transition:transform .08s ease;user-select:none;}
+  .blk:active{transform:scale(0.94);}
+  .blk.on{border-color:transparent;color:#10131a;}
+
+  .submitbar{margin-top:26px;}
+  .submitbtn{width:100%;background:var(--amber);color:#1a1204;border:none;border-radius:10px;
+    font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.06em;font-size:15px;
+    font-weight:600;padding:15px;cursor:pointer;}
+  .submitbtn:disabled{background:var(--panel-raised);color:var(--muted);cursor:not-allowed;}
+  .note{text-align:center;color:var(--muted);font-size:12px;margin-top:10px;}
+  .confirm{display:none;text-align:center;padding:36px 10px;}
+  .confirm .big{font-family:'Bebas Neue';font-size:30px;color:var(--amber);}
+
+  /* manager view */
+  #managerView{display:none;}
+  .cfgrow{display:flex;gap:8px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);margin-bottom:16px;}
+  .cfgrow label{font-size:12.5px;color:var(--muted);}
+  .cfgrow input{background:var(--panel);border:1px solid var(--line);color:var(--paper);padding:8px 10px;border-radius:7px;font-size:13px;}
+  .cfgrow button{background:var(--panel-raised);border:1px solid var(--line);color:var(--paper);padding:8px 12px;
+    border-radius:7px;font-size:12.5px;cursor:pointer;}
+  .cfgrow button:hover{border-color:var(--amber);}
+  .cfgrow .evetoggle{display:flex;align-items:center;gap:6px;margin-left:auto;}
+  .cfgrow .evetoggle input{width:16px;height:16px;padding:0;accent-color:var(--amber);}
+  .banner{background:var(--panel);border:1px solid var(--amber);border-radius:10px;padding:14px 16px;margin-bottom:18px;}
+  .banner .lbl{font-family:'Oswald';text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:var(--amber);}
+  .banner .val{font-size:16px;font-weight:600;margin-top:4px;}
+  .agg .blk{cursor:default;position:relative;color:var(--paper);align-items:flex-start;
+    flex-direction:column;gap:4px;min-height:52px;padding:8px 7px;justify-content:flex-start;}
+  .agg .blk .blabel{font-size:9.5px;font-weight:600;opacity:0.65;text-transform:uppercase;letter-spacing:0.04em;}
+  .agg .chiprow{display:flex;flex-wrap:wrap;gap:4px;width:100%;}
+  .agg .namechip{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:20px;color:#14171c;
+    white-space:nowrap;line-height:1.5;}
+  .agg .blk.empty{opacity:0.45;}
+  .legend{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);}
+  .legend h3{font-family:'Oswald';text-transform:uppercase;font-size:12.5px;letter-spacing:0.1em;color:var(--muted);margin:0 0 10px;}
+  .legrow{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:13.5px;}
+  .legrow .cnt{margin-left:auto;color:var(--muted);font-size:12px;}
+  .empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:14px;}
+  .disclaimer{text-align:center;color:var(--muted);font-size:11px;padding-top:20px;line-height:1.5;}
+  .storagewarn{display:none;background:#3a2418;border:1px solid #b5551f;color:#f3c9a3;font-size:12.5px;
+    border-radius:9px;padding:12px 14px;margin:16px 0;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="masthead">
+  <div class="eyebrow"><span class="tally"></span>¡VIVA! LA SANTA BIBLIA</div>
+  <h1>WHEN CAN YOU RECORD?</h1>
+  <p class="sub">English sessions · tap the blocks that work for you</p>
+</div>
+
+<div class="wrap">
+
+  <!-- TALENT VIEW -->
+  <div id="talentView">
+    <div class="storagewarn" id="setupWarn">
+      This poll isn't fully set up yet — the Make webhook or Sheet link is still a placeholder in the code.
+    </div>
+    <div class="namebar">
+      <input id="fname" placeholder="First name" autocomplete="given-name">
+      <input id="lname" placeholder="Last name" autocomplete="family-name">
+    </div>
+    <div class="colorline" id="colorline"></div>
+
+    <div id="grid"></div>
+
+    <div class="submitbar">
+      <button class="submitbtn" id="submitBtn" disabled>Enter your name to continue</button>
+      <p class="note">You can come back and update this anytime before the schedule is finalized.</p>
+    </div>
+
+    <div class="confirm" id="confirm">
+      <div class="big">GOT IT ✓</div>
+      <p class="sub" id="confirmText"></p>
+    </div>
+  </div>
+
+  <!-- MANAGER VIEW -->
+  <div id="managerView">
+    <div class="cfgrow">
+      <div id="cfgLabel" style="font-size:12.5px;color:var(--muted);"></div>
+      <button id="refreshBtn" style="margin-left:auto;">Refresh responses</button>
+    </div>
+    <div id="bestSlot"></div>
+    <div id="aggGrid"></div>
+    <div class="legend">
+      <h3>Responses</h3>
+      <div id="legendList"></div>
+    </div>
+  </div>
+
+  <p class="disclaimer">Your response is saved for the production team's scheduling only.</p>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — edit these four values, then commit/push to GitHub.
+   ============================================================ */
+const CONFIG = {
+  weekStartISO: '2026-08-31',        // Monday of Week 1 (YYYY-MM-DD)
+  showEvening: true,                 // false hides the Evening block for talent
+  makeWebhookUrl: 'https://hook.us2.make.com/cv45yk1ks9w3paisgk9f2kkw1rwktto6',
+  sheetCsvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcKMnriWGY0oFHwnGD0oD84JLNMdMRLNYQjMT7IKAT5t_9gJ058cMdzsvBf1YcDUf3oyHbkeZKnsd5/pub?gid=0&single=true&output=csv'
+};
+/* ============================================================ */
+
+const ALL_BLOCKS = [
+  {id:'AM', label:'AM', sub:'9–12'},
+  {id:'PM', label:'PM', sub:'12–4'},
+  {id:'EVE', label:'EVE', sub:'4–8'}
+];
+const activeBlockList = CONFIG.showEvening===false ? ALL_BLOCKS.filter(b=>b.id!=='EVE') : ALL_BLOCKS;
+
+const PALETTE = [
+  '#4FB3A9','#E5686B','#9B7EDE','#5B9BD5','#A8C24A',
+  '#E38FC0','#6C7BC9','#6FCF97','#C2548B','#D98A4A'
+];
+
+let state = {
+  weekStart: new Date(CONFIG.weekStartISO+'T00:00:00'),
+  selections: new Set(), // "YYYY-MM-DD_BLK"
+  slug: null,
+  color: null,
+  _loaded: false
+};
+
+function pad(n){return String(n).padStart(2,'0');}
+function isoDate(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+function slugify(f,l){return (f+l).toLowerCase().replace(/[^a-z]/g,'');}
+function colorFor(slug){
+  let h=0; for(const c of slug) h = (h*31 + c.charCodeAt(0)) % PALETTE.length;
+  return PALETTE[h];
+}
+function pickUnusedColor(slug, existingEntries){
+  const taken = new Set(
+    (existingEntries || [])
+      .filter(e => slugify(e.firstName, e.lastName) !== slug)
+      .map(e => e.color)
+  );
+  const preferred = colorFor(slug);
+  if(!taken.has(preferred)) return preferred;
+  const open = PALETTE.find(c => !taken.has(c));
+  return open || preferred; // if every color is taken, fall back to the hash color
+}
+function fmtDow(d){return d.toLocaleDateString('en-US',{weekday:'short'});}
+function fmtMD(d){return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'});}
+function fmtLong(d){return d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});}
+function shortLabel(fullName){
+  const parts = fullName.trim().split(/\s+/);
+  if(parts.length===1) return parts[0];
+  return parts[0] + ' ' + parts[1][0] + '.';
+}
+function isConfigured(){
+  return !CONFIG.makeWebhookUrl.includes('PASTE_YOUR') && !CONFIG.sheetCsvUrl.includes('PASTE_YOUR');
+}
+
+function twoWeekDates(start){
+  const week1 = [...Array(7)].map((_,i)=>addDays(start,i));
+  const week2 = [...Array(7)].map((_,i)=>addDays(start,i+7));
+  return [week1, week2];
+}
+
+/* Fetch + parse the published Sheet CSV. Dedupes by slug, keeping the
+   latest Timestamp — handles re-submissions since Make only appends rows. */
+async function loadEntries(){
+  const url = CONFIG.sheetCsvUrl + (CONFIG.sheetCsvUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Sheet fetch failed: ' + res.status);
+  const text = await res.text();
+  const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+  const bySlug = {};
+  parsed.data.forEach(r=>{
+    const slug = r.Slug || r.slug;
+    if(!slug) return;
+    const ts = r.Timestamp || r.timestamp || '';
+    if(!bySlug[slug] || ts > bySlug[slug]._ts){
+      let selections = [];
+      try{ selections = JSON.parse(r.SelectionsJSON || r.selectionsJson || '[]'); }catch(e){}
+      bySlug[slug] = {
+        firstName: r['First Name'] || r.firstName || '',
+        lastName: r['Last Name'] || r.lastName || '',
+        color: r.Color || r.color || '#e8a33d',
+        selections, _ts: ts
+      };
+    }
+  });
+  return Object.values(bySlug);
+}
+
+/* ---------- TALENT VIEW ---------- */
+function renderGrid(weeks, blockList){
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  weeks.forEach((week, wi)=>{
+    const label = document.createElement('div');
+    label.className = 'weeklabel';
+    label.textContent = `Week ${wi+1} — ${fmtMD(week[0])} to ${fmtMD(week[6])}`;
+    grid.appendChild(label);
+    week.forEach(day=>{
+      const row = document.createElement('div');
+      row.className = 'dayrow';
+      const dl = document.createElement('div');
+      dl.className = 'daylabel';
+      dl.innerHTML = `<span class="dow">${fmtDow(day)}</span><span class="dnum">${fmtMD(day)}</span>`;
+      row.appendChild(dl);
+      const blocks = document.createElement('div');
+      blocks.className = 'blocks';
+      blockList.forEach(b=>{
+        const key = `${isoDate(day)}_${b.id}`;
+        const btn = document.createElement('div');
+        btn.className = 'blk';
+        btn.dataset.key = key;
+        btn.innerHTML = `${b.label}<br><span style="opacity:.7;font-size:10px;font-weight:400">${b.sub}</span>`;
+        btn.addEventListener('click', ()=>toggleBlock(key, btn));
+        blocks.appendChild(btn);
+      });
+      row.appendChild(blocks);
+      grid.appendChild(row);
+    });
+  });
+}
+
+function toggleBlock(key, el){
+  if(state.selections.has(key)){
+    state.selections.delete(key);
+    el.classList.remove('on');
+    el.style.background=''; el.style.borderColor='';
+  } else {
+    state.selections.add(key);
+    el.classList.add('on');
+    el.style.background = state.color || '#e8a33d';
+    el.style.borderColor = state.color || '#e8a33d';
+  }
+  updateSubmitState();
+}
+
+function repaintSelections(){
+  document.querySelectorAll('#grid .blk').forEach(el=>{
+    if(state.selections.has(el.dataset.key)){
+      el.classList.add('on');
+      el.style.background = state.color;
+      el.style.borderColor = state.color;
+    } else {
+      el.classList.remove('on');
+      el.style.background=''; el.style.borderColor='';
+    }
+  });
+}
+
+function updateSubmitState(){
+  const btn = document.getElementById('submitBtn');
+  if(!isConfigured()) return; // setup warning already disabled it
+  const f = document.getElementById('fname').value.trim();
+  const l = document.getElementById('lname').value.trim();
+  if(!f || !l){
+    btn.disabled = true;
+    btn.textContent = 'Enter your name to continue';
+    return;
+  }
+  btn.disabled = false;
+  btn.textContent = state._loaded ? 'Update my availability' : 'Send my availability';
+}
+
+async function tryLoadExisting(){
+  const f = document.getElementById('fname').value.trim();
+  const l = document.getElementById('lname').value.trim();
+  if(!f || !l || !isConfigured()) return;
+  const slug = slugify(f,l);
+  state.slug = slug;
+  state.color = colorFor(slug); // provisional, refined below once we see who else has responded
+  document.getElementById('colorline').innerHTML =
+    `<span class="dot" style="background:${state.color};color:${state.color}"></span> Your color for this poll`;
+  try{
+    const entries = await loadEntries();
+    const mine = entries.find(e => slugify(e.firstName, e.lastName) === slug);
+    state.color = mine ? mine.color : pickUnusedColor(slug, entries);
+    document.getElementById('colorline').innerHTML =
+      `<span class="dot" style="background:${state.color};color:${state.color}"></span> Your color for this poll`;
+    if(mine){
+      state.selections = new Set(mine.selections || []);
+      state._loaded = true;
+      repaintSelections();
+    } else {
+      state._loaded = false;
+    }
+  }catch(e){
+    console.error('Could not check for an existing submission:', e);
+    state._loaded = false;
+  }
+  updateSubmitState();
+}
+
+async function submitAvailability(){
+  const f = document.getElementById('fname').value.trim();
+  const l = document.getElementById('lname').value.trim();
+  const slug = slugify(f,l);
+  const payload = {
+    timestamp: new Date().toISOString(),
+    firstName: f, lastName: l, slug,
+    color: state.color,
+    selectionsJson: JSON.stringify(Array.from(state.selections))
+  };
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    const res = await fetch(CONFIG.makeWebhookUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error('Webhook responded ' + res.status);
+    document.getElementById('talentView').querySelector('.namebar').style.display='none';
+    document.getElementById('colorline').style.display='none';
+    document.getElementById('grid').style.display='none';
+    document.querySelector('.submitbar').style.display='none';
+    const confirmEl = document.getElementById('confirm');
+    confirmEl.style.display='block';
+    document.getElementById('confirmText').textContent =
+      `Thanks, ${f} — we've got ${state.selections.size} block${state.selections.size===1?'':'s'} on file for you.`;
+  }catch(e){
+    console.error('VIVA availability save failed:', e);
+    btn.disabled = false;
+    btn.textContent = 'Save failed: ' + (e && e.message ? e.message : 'unknown error') + ' — tap to retry';
+  }
+}
+
+/* ---------- MANAGER VIEW ---------- */
+async function renderManagerView(weeks){
+  document.getElementById('cfgLabel').textContent =
+    `Week 1: ${fmtMD(weeks[0][0])}–${fmtMD(weeks[0][6])} · Week 2: ${fmtMD(weeks[1][0])}–${fmtMD(weeks[1][6])} · Evening block: ${CONFIG.showEvening===false ? 'off' : 'on'}`;
+
+  const aggGrid = document.getElementById('aggGrid');
+  const bestSlot = document.getElementById('bestSlot');
+  const legendList = document.getElementById('legendList');
+  aggGrid.innerHTML = '<p class="empty">Loading responses…</p>';
+
+  let entries = [];
+  try{
+    entries = await loadEntries();
+  }catch(e){
+    aggGrid.innerHTML = `<p class="empty">Couldn't load responses: ${e.message}</p>`;
+    bestSlot.innerHTML = ''; legendList.innerHTML = '';
+    return;
+  }
+
+  if(entries.length === 0){
+    aggGrid.innerHTML = '<p class="empty">No responses yet. Once talent submit, their blocks show up here.</p>';
+    bestSlot.innerHTML = ''; legendList.innerHTML = '';
+    return;
+  }
+
+  const tally = {};
+  entries.forEach(e=>{
+    (e.selections||[]).forEach(key=>{
+      if(!tally[key]) tally[key]=[];
+      tally[key].push({name:`${e.firstName} ${e.lastName}`, color:e.color});
+    });
+  });
+
+  let maxCount = 0;
+  Object.values(tally).forEach(arr=>{ if(arr.length>maxCount) maxCount=arr.length; });
+  const bestKeys = maxCount>0 ? Object.keys(tally).filter(k=>tally[k].length===maxCount) : [];
+  if(bestKeys.length){
+    const parts = bestKeys.slice(0,3).map(k=>{
+      const [dateStr, blk] = k.split('_');
+      const d = new Date(dateStr+'T00:00:00');
+      const b = ALL_BLOCKS.find(b=>b.id===blk);
+      return `${fmtLong(d)} · ${b.label} (${b.sub})`;
+    });
+    bestSlot.innerHTML = `<div class="banner"><div class="lbl">Most people available</div>
+      <div class="val">${parts.join('&nbsp;&nbsp;·&nbsp;&nbsp;')} — ${maxCount} of ${entries.length}</div></div>`;
+  } else {
+    bestSlot.innerHTML = '';
+  }
+
+  aggGrid.innerHTML = '';
+  aggGrid.className = 'agg';
+  weeks.forEach((week, wi)=>{
+    const label = document.createElement('div');
+    label.className='weeklabel';
+    label.textContent = `Week ${wi+1} — ${fmtMD(week[0])} to ${fmtMD(week[6])}`;
+    aggGrid.appendChild(label);
+    week.forEach(day=>{
+      const row = document.createElement('div');
+      row.className='dayrow';
+      const dl = document.createElement('div');
+      dl.className='daylabel';
+      dl.innerHTML = `<span class="dow">${fmtDow(day)}</span><span class="dnum">${fmtMD(day)}</span>`;
+      row.appendChild(dl);
+      const blocks = document.createElement('div');
+      blocks.className='blocks';
+      const rowKey = isoDate(day);
+      ALL_BLOCKS.forEach(b=>{
+        const key = `${rowKey}_${b.id}`;
+        const people = tally[key] || [];
+        const btn = document.createElement('div');
+        btn.className = 'blk' + (people.length ? '' : ' empty');
+        const chips = people.map(p=>
+          `<span class="namechip" style="background:${p.color}" title="${p.name}">${shortLabel(p.name)}</span>`
+        ).join('');
+        btn.innerHTML = `<span class="blabel">${b.label}</span><div class="chiprow">${chips || '—'}</div>`;
+        blocks.appendChild(btn);
+      });
+      row.appendChild(blocks);
+      aggGrid.appendChild(row);
+    });
+  });
+
+  legendList.innerHTML = entries
+    .sort((a,b)=> (b.selections||[]).length - (a.selections||[]).length)
+    .map(e=>`<div class="legrow"><span class="dot" style="background:${e.color};color:${e.color}"></span>
+      ${e.firstName} ${e.lastName}<span class="cnt">${(e.selections||[]).length} blocks</span></div>`)
+    .join('');
+}
+
+/* ---------- WIRE UP ---------- */
+const isManager = new URLSearchParams(window.location.search).get('manager') === '1';
+
+function init(){
+  const weeks = twoWeekDates(state.weekStart);
+
+  if(isManager){
+    document.getElementById('talentView').style.display = 'none';
+    document.getElementById('managerView').style.display = 'block';
+    if(!isConfigured()){
+      document.getElementById('aggGrid').innerHTML =
+        '<p class="empty">Add your Make webhook and Sheet CSV URLs in the CONFIG block first.</p>';
+      return;
+    }
+    renderManagerView(weeks);
+    document.getElementById('refreshBtn').addEventListener('click', ()=>renderManagerView(weeks));
+    return;
+  }
+
+  renderGrid(weeks, activeBlockList);
+  updateSubmitState();
+
+  if(!isConfigured()){
+    document.getElementById('setupWarn').style.display = 'block';
+    document.getElementById('setupWarn').textContent =
+      "This poll isn't fully set up yet — add your Make webhook and Sheet CSV URLs in the CONFIG block.";
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').textContent = 'Not configured yet';
+  }
+
+  document.getElementById('fname').addEventListener('blur', tryLoadExisting);
+  document.getElementById('lname').addEventListener('blur', tryLoadExisting);
+  document.getElementById('fname').addEventListener('input', updateSubmitState);
+  document.getElementById('lname').addEventListener('input', updateSubmitState);
+  document.getElementById('submitBtn').addEventListener('click', submitAvailability);
+}
+init();
+</script>
+</body>
+</html>
