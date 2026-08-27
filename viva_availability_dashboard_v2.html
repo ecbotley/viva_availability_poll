@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>¡VIVA! — Master Availability Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --ink:#14171c; --panel:#1e232b; --panel-raised:#262c36;
+    --amber:#e8a33d; --paper:#f3eee3; --muted:#8993a3; --line:#333b47;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ink);color:var(--paper);font-family:'Inter',sans-serif;}
+  body{min-height:100vh;padding:0 0 60px;}
+  .wrap{max-width:640px;margin:0 auto;padding:0 18px;}
+
+  .masthead{padding:28px 18px 18px;text-align:center;border-bottom:1px solid var(--line);}
+  .tally{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--amber);
+    box-shadow:0 0 8px 2px rgba(232,163,61,0.65);margin-right:8px;
+    animation:pulse 2.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.45;}}
+  @media (prefers-reduced-motion: reduce){.tally{animation:none;}}
+  .eyebrow{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:0.03em;margin:6px 0 4px;line-height:1;}
+  .sub{color:var(--muted);font-size:14.5px;margin:0;}
+
+  .cfgrow{display:flex;gap:8px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);margin-bottom:16px;}
+  .cfgrow button{background:var(--panel-raised);border:1px solid var(--line);color:var(--paper);padding:8px 12px;
+    border-radius:7px;font-size:12.5px;cursor:pointer;margin-left:auto;}
+  .cfgrow button:hover{border-color:var(--amber);}
+
+  .banner{background:var(--panel);border:1px solid var(--amber);border-radius:10px;padding:14px 16px;margin-bottom:18px;}
+  .banner .lbl{font-family:'Oswald';text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:var(--amber);}
+  .banner .val{font-size:16px;font-weight:600;margin-top:4px;}
+
+  .weeklabel{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.1em;font-size:13px;
+    color:var(--amber);margin:22px 0 10px;padding-top:14px;border-top:1px solid var(--line);}
+  .weeklabel:first-of-type{border-top:none;margin-top:8px;}
+  .dayrow{display:flex;align-items:center;gap:10px;padding:7px 0;}
+  .daylabel{width:82px;flex:none;font-size:13.5px;color:var(--paper);}
+  .daylabel .dow{font-weight:600;}
+  .daylabel .dnum{color:var(--muted);display:block;font-size:11.5px;}
+  .blocks{display:flex;gap:7px;flex:1;}
+  .blk{flex:1;background:var(--panel-raised);border:1px solid var(--line);border-radius:8px;color:var(--paper);
+    font-family:'Inter';padding:8px 7px;text-align:left;align-items:flex-start;flex-direction:column;gap:4px;
+    min-height:52px;justify-content:flex-start;display:flex;}
+  .blk .blabel{font-size:9.5px;font-weight:600;opacity:0.65;text-transform:uppercase;letter-spacing:0.04em;}
+  .blk.empty{opacity:0.45;}
+  .chiprow{display:flex;flex-wrap:wrap;gap:4px;width:100%;}
+  .namechip{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:20px;color:#14171c;
+    white-space:nowrap;line-height:1.5;}
+
+  .legend{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);}
+  .legend h3{font-family:'Oswald';text-transform:uppercase;font-size:12.5px;letter-spacing:0.1em;color:var(--muted);margin:0 0 10px;}
+  .legrow{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:13.5px;}
+  .legrow .cnt{margin-left:auto;color:var(--muted);font-size:12px;}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none;box-shadow:0 0 6px 0 currentColor;}
+  .empty-msg{text-align:center;color:var(--muted);padding:40px 10px;font-size:14px;}
+  .disclaimer{text-align:center;color:var(--muted);font-size:11px;padding-top:20px;line-height:1.5;}
+
+  .lockscreen{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;
+    gap:18px;padding:0 24px;text-align:center;}
+  .lockscreen h2{font-family:'Bebas Neue';font-size:28px;letter-spacing:0.03em;margin:0;}
+  .pininput{background:var(--panel);border:1px solid var(--line);color:var(--paper);font-family:'Inter';
+    font-size:22px;letter-spacing:0.4em;text-align:center;padding:14px;border-radius:9px;width:200px;}
+  .pininput:focus{outline:none;border-color:var(--amber);}
+  .unlockbtn{background:var(--amber);color:#1a1204;border:none;border-radius:9px;font-family:'Oswald';
+    text-transform:uppercase;letter-spacing:0.05em;font-size:14px;font-weight:600;padding:12px 24px;cursor:pointer;}
+  .lockerr{color:#e5686b;font-size:12.5px;min-height:16px;}
+</style>
+</head>
+<body>
+
+<div class="lockscreen" id="lockScreen">
+  <div class="eyebrow"><span class="tally"></span>¡VIVA! LA SANTA BIBLIA</div>
+  <h2>ENTER PIN</h2>
+  <input type="password" id="pinInput" class="pininput" inputmode="numeric" maxlength="8" autocomplete="off">
+  <button class="unlockbtn" id="unlockBtn">Unlock</button>
+  <div class="lockerr" id="lockErr"></div>
+</div>
+
+<div id="dashboardContent" style="display:none;">
+<div class="masthead">
+  <div class="eyebrow"><span class="tally"></span>¡VIVA! LA SANTA BIBLIA</div>
+  <h1>MASTER DASHBOARD</h1>
+  <p class="sub">Every submitted date, from every group link — nothing to configure</p>
+</div>
+
+<div class="wrap">
+  <div class="cfgrow">
+    <div id="cfgLabel" style="font-size:12.5px;color:var(--muted);"></div>
+    <button id="refreshBtn">Refresh responses</button>
+  </div>
+  <div id="bestSlot"></div>
+  <div id="aggGrid"></div>
+  <div class="legend">
+    <h3>Responses</h3>
+    <div id="legendList"></div>
+  </div>
+  <p class="disclaimer">Private dashboard — this link is for production use only.</p>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — same Make webhook / Sheet as your poll links.
+   No date range here on purpose: this dashboard shows whatever
+   dates actually appear in submitted responses, automatically,
+   regardless of which group link people used to submit.
+   ============================================================ */
+const CONFIG = {
+  pin: '2468', // change this to whatever PIN you want
+  makeWebhookUrl: 'https://hook.us2.make.com/cv45yk1ks9w3paisgk9f2kkw1rwktto6',
+  sheetCsvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcKMnriWGY0oFHwnGD0oD84JLNMdMRLNYQjMT7IKAT5t_9gJ058cMdzsvBf1YcDUf3oyHbkeZKnsd5/pub?gid=0&single=true&output=csv'
+};
+/* ============================================================ */
+
+const ALL_BLOCKS = [
+  {id:'AM', label:'AM', sub:'9–12'},
+  {id:'PM', label:'PM', sub:'12–4'},
+  {id:'EVE', label:'EVE', sub:'4–8'}
+];
+
+function pad(n){return String(n).padStart(2,'0');}
+function isoDate(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function fmtDow(d){return d.toLocaleDateString('en-US',{weekday:'short'});}
+function fmtMD(d){return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'});}
+function fmtLong(d){return d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});}
+function shortLabel(fullName){
+  const parts = fullName.trim().split(/\s+/);
+  if(parts.length===1) return parts[0];
+  return parts[0] + ' ' + parts[1][0] + '.';
+}
+function mondayOf(d){
+  const r = new Date(d);
+  const dow = r.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  r.setDate(r.getDate() + diff);
+  return r;
+}
+
+/* Fetch + parse the published Sheet CSV. Dedupes by slug, keeping the
+   latest Timestamp — handles re-submissions since Make only appends rows. */
+async function loadEntries(){
+  const url = CONFIG.sheetCsvUrl + (CONFIG.sheetCsvUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Sheet fetch failed: ' + res.status);
+  const text = await res.text();
+  const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+  const bySlug = {};
+  parsed.data.forEach(r=>{
+    const slug = r.Slug || r.slug;
+    if(!slug) return;
+    const ts = r.Timestamp || r.timestamp || '';
+    if(!bySlug[slug] || ts > bySlug[slug]._ts){
+      let selections = [];
+      try{ selections = JSON.parse(r.SelectionsJSON || r.selectionsJson || '[]'); }catch(e){}
+      bySlug[slug] = {
+        firstName: r['First Name'] || r.firstName || '',
+        lastName: r['Last Name'] || r.lastName || '',
+        color: r.Color || r.color || '#e8a33d',
+        role: r.Role || r.role || '',
+        selections, _ts: ts
+      };
+    }
+  });
+  return Object.values(bySlug);
+}
+
+/* Builds the date list purely from what's actually in the data —
+   no configured range, so it never needs updating as you send out
+   different group links with different windows. */
+function datesFromEntries(entries){
+  const set = new Set();
+  entries.forEach(e => (e.selections||[]).forEach(k => set.add(k.split('_')[0])));
+  return Array.from(set).map(s => new Date(s+'T00:00:00')).sort((a,b)=>a-b);
+}
+
+async function renderDashboard(){
+  const aggGrid = document.getElementById('aggGrid');
+  const bestSlot = document.getElementById('bestSlot');
+  const legendList = document.getElementById('legendList');
+  const cfgLabel = document.getElementById('cfgLabel');
+  aggGrid.innerHTML = '<p class="empty-msg">Loading responses…</p>';
+  cfgLabel.textContent = 'Loading…';
+
+  let entries = [];
+  try{
+    entries = await loadEntries();
+  }catch(e){
+    aggGrid.innerHTML = `<p class="empty-msg">Couldn't load responses: ${e.message}</p>`;
+    bestSlot.innerHTML = ''; legendList.innerHTML = ''; cfgLabel.textContent = '';
+    return;
+  }
+
+  if(entries.length === 0){
+    aggGrid.innerHTML = '<p class="empty-msg">No responses yet from any link.</p>';
+    bestSlot.innerHTML = ''; legendList.innerHTML = '';
+    cfgLabel.textContent = '0 responses';
+    return;
+  }
+
+  const dates = datesFromEntries(entries);
+  cfgLabel.textContent = `${entries.length} response${entries.length===1?'':'s'} · ${dates.length} date${dates.length===1?'':'s'} spanned: ${fmtMD(dates[0])}–${fmtMD(dates[dates.length-1])}`;
+
+  const tally = {};
+  entries.forEach(e=>{
+    (e.selections||[]).forEach(key=>{
+      if(!tally[key]) tally[key]=[];
+      tally[key].push({name:`${e.firstName} ${e.lastName}`, color:e.color, role:e.role});
+    });
+  });
+
+  let maxCount = 0;
+  Object.values(tally).forEach(arr=>{ if(arr.length>maxCount) maxCount=arr.length; });
+  const bestKeys = maxCount>0 ? Object.keys(tally).filter(k=>tally[k].length===maxCount) : [];
+  if(bestKeys.length){
+    const parts = bestKeys.slice(0,3).map(k=>{
+      const [dateStr, blk] = k.split('_');
+      const d = new Date(dateStr+'T00:00:00');
+      const b = ALL_BLOCKS.find(b=>b.id===blk);
+      return `${fmtLong(d)} · ${b.label} (${b.sub})`;
+    });
+    bestSlot.innerHTML = `<div class="banner"><div class="lbl">Most people available</div>
+      <div class="val">${parts.join('&nbsp;&nbsp;·&nbsp;&nbsp;')} — ${maxCount} of ${entries.length}</div></div>`;
+  } else {
+    bestSlot.innerHTML = '';
+  }
+
+  aggGrid.innerHTML = '';
+  let lastWeekKey = null;
+  dates.forEach(day=>{
+    const weekKey = isoDate(mondayOf(day));
+    if(weekKey !== lastWeekKey){
+      lastWeekKey = weekKey;
+      const label = document.createElement('div');
+      label.className='weeklabel';
+      label.textContent = `Week of ${fmtMD(mondayOf(day))}`;
+      aggGrid.appendChild(label);
+    }
+    const row = document.createElement('div');
+    row.className='dayrow';
+    const dl = document.createElement('div');
+    dl.className='daylabel';
+    dl.innerHTML = `<span class="dow">${fmtDow(day)}</span><span class="dnum">${fmtMD(day)}</span>`;
+    row.appendChild(dl);
+    const blocks = document.createElement('div');
+    blocks.className='blocks';
+    const rowKey = isoDate(day);
+    ALL_BLOCKS.forEach(b=>{
+      const key = `${rowKey}_${b.id}`;
+      const people = tally[key] || [];
+      const btn = document.createElement('div');
+      btn.className = 'blk' + (people.length ? '' : ' empty');
+      const chips = people.map(p=>
+        `<span class="namechip" style="background:${p.color}" title="${p.name}${p.role ? ' — ' + p.role : ''}">${shortLabel(p.name)}${p.role ? ' (' + p.role[0] + ')' : ''}</span>`
+      ).join('');
+      btn.innerHTML = `<span class="blabel">${b.label}</span><div class="chiprow">${chips || '—'}</div>`;
+      blocks.appendChild(btn);
+    });
+    row.appendChild(blocks);
+    aggGrid.appendChild(row);
+  });
+
+  legendList.innerHTML = entries
+    .sort((a,b)=> (b._ts||'').localeCompare(a._ts||''))
+    .map(e=>`<div class="legrow"><span class="dot" style="background:${e.color};color:${e.color}"></span>
+      ${e.firstName} ${e.lastName}${e.role ? ` <span style="color:var(--muted);font-size:11px;">· ${e.role}</span>` : ''}<span class="cnt">${(e.selections||[]).length} blocks</span></div>`)
+    .join('');
+}
+
+document.getElementById('refreshBtn').addEventListener('click', renderDashboard);
+
+function tryUnlock(){
+  const entered = document.getElementById('pinInput').value.trim();
+  if(entered === CONFIG.pin){
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('dashboardContent').style.display = 'block';
+    renderDashboard();
+  } else {
+    document.getElementById('lockErr').textContent = 'Wrong PIN — try again.';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
+}
+document.getElementById('unlockBtn').addEventListener('click', tryUnlock);
+document.getElementById('pinInput').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') tryUnlock();
+});
+document.getElementById('pinInput').focus();
+</script>
+</div>
+</body>
+</html>
