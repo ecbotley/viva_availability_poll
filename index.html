@@ -141,7 +141,6 @@
   <div class="eyebrow"><span class="tally"></span>¡VIVA! LA SANTA BIBLIA</div>
   <h1>WHEN ARE YOU AVAILABLE?</h1>
   <p class="sub" id="mainSub">Tap the blocks that work for you</p>
-  <p style="font-size:10px;color:#555;margin-top:8px;">[TESTING ONLY — remove this line before production] Active group: <span id="debugGroup"></span></p>
 </div>
 
 <div class="wrap">
@@ -210,16 +209,10 @@
    CONFIG — edit these values, then commit/push to GitHub.
    ============================================================ */
 const CONFIG = {
-  // Define as many named date-sets as you want. Each is its own group —
-  // send people a link with ?group=<name> on the end and they'll only
-  // see that group's dates. Anyone with no ?group= param (or an unknown
-  // one) falls back to "default".
-  dateGroups: {
-    default: dateRange('2026-09-16', '2026-09-30'),
-    // Add more groups here whenever you need them, e.g.:
-    // earlyBird: dateRange('2026-09-16', '2026-09-20'),
-    // lateJoiners: dateRange('2026-09-24', '2026-09-30'),
-  },
+  // List every date you want to offer, as 'YYYY-MM-DD', in order.
+  // Use dateRange('start','end') to generate a contiguous run instead of
+  // typing each date — e.g. a 2-week window, or just 3 days.
+  offeredDates: dateRange('2026-09-16', '2026-09-30'),
   showEvening: true,                 // false hides the Evening block entirely
   showWeekends: true,                // false auto-drops Sat/Sun out of offeredDates
   blockedSlots: [],                  // one-off exceptions, e.g. ['2026-09-01_PM'] blocks just that slot
@@ -227,10 +220,6 @@ const CONFIG = {
   sheetCsvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcKMnriWGY0oFHwnGD0oD84JLNMdMRLNYQjMT7IKAT5t_9gJ058cMdzsvBf1YcDUf3oyHbkeZKnsd5/pub?gid=0&single=true&output=csv'
 };
 /* ============================================================ */
-
-const requestedGroup = new URLSearchParams(window.location.search).get('group');
-CONFIG.offeredDates = CONFIG.dateGroups[requestedGroup] || CONFIG.dateGroups.default;
-CONFIG.activeGroupName = (requestedGroup && CONFIG.dateGroups[requestedGroup]) ? requestedGroup : 'default';
 
 const ALL_BLOCKS = [
   {id:'AM', label:'AM', sub:'9–12'},
@@ -699,7 +688,6 @@ const isManager = new URLSearchParams(window.location.search).get('manager') ===
 
 function init(){
   const dates = buildScheduleDates();
-  document.getElementById('debugGroup').textContent = CONFIG.activeGroupName;
 
   if(isManager){
     document.getElementById('talentView').style.display = 'none';
